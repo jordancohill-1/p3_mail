@@ -1,0 +1,7 @@
+textarea {
+    min-height: 400px;
+}
+
+label {
+	font-weight: bold;
+}
