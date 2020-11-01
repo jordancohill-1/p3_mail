@@ -5,3 +5,7 @@ textarea {
 label {
 	font-weight: bold;
 }
+
+.row-hover div:hover{
+	border-color: blue;
+}

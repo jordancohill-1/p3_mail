@@ -64,20 +64,37 @@ function load_mailbox(mailbox) {
     .then( emails => {
 
       const display = document.querySelector('#emails-view');
-      const list = document.createElement('ul');
-
+      
       emails.forEach((email) => {
-        //Create li for each email
-        let item = document.createElement('li');
 
-        item.innerHTML = `${email.sender}  ${email.subject}  ${email.timestamp}`;
-        list.appendChild(item);
+        var background_color = email.read ? 'lightgray' : 'white';
+
+        let item = document.createElement('div');
+        item.innerHTML = `
+        <div class="container" style="background-color:${background_color}">
+          <div class="border row row-hover">
+            <div class="col-sm">
+              <label>${email.sender}</label>
+            </div>
+            <div class="col-sm">
+              <div> ${email.subject}</div>
+            </div>
+            <div class="col-sm" style="text-align:right;">
+               ${email.timestamp}
+            </div>
+          </div>
+        </div>
+       `;
         item.addEventListener('click', function() {
-          get_email(email.id);
+          get_email(email.id, mailbox);
+          //check if !read and user is recipient 
+          if(!email.read && mailbox == 'inbox'){
+             mark_read(email.id);   
+            }
         });
+        display.appendChild(item);
 
       });
-      display.appendChild(list);
       console.log(emails);
     }).catch((error) => {
         console.log(error);
@@ -105,27 +122,32 @@ function send_email() {
   
 }
 
-function get_email(email_id) {
+function get_email(email_id, mailbox) {
   //show only selected email
   show_selected_view();
 
   fetch(`emails/${email_id}`)
   .then(response => response.json())
     .then( email => {
-      create_selected_html(email.sender, email.recipients, email.subject, email.timestamp, email.body);
+      create_selected_html(email, mailbox);      
    }).catch((error) => {
         console.log(error);
   });
+
 }
 
-function create_selected_html(sender, recipients, subject, timestamp, body){
+function create_selected_html(email, mailbox){
   const view = document.querySelector('#inner-selected-view');
+  const outer_view = document.querySelector('#outer-selected-view');
+  //clear div or it will keep appending
+  view.innerHTML = "";
+  outer_view.innerHTML = "";
   let info = document.createElement('div');
       info.innerHTML =`
-      <label>From: </label> ${sender}<br/>
-      <label>To: </label> ${recipients}<br/>
-      <label>Subject: </label> ${subject}<br/>
-      <label>Timestamp: </label> ${timestamp}<br/>
+      <label>From: </label> ${email.sender}<br/>
+      <label>To: </label> ${email.recipients}<br/>
+      <label>Subject: </label> ${email.subject}<br/>
+      <label>Timestamp: </label> ${email.timestamp}<br/>
       `;
 
   //create reply button and pass email to reply()
@@ -133,26 +155,62 @@ function create_selected_html(sender, recipients, subject, timestamp, body){
       reply_button.innerHTML = 'Reply';
       reply_button.className = `btn btn-sm btn-outline-primary`;
       reply_button.addEventListener('click', function() {
-          reply(sender, subject, body, timestamp);
+          reply(email);
         });
-      view.appendChild(info);
-      view.appendChild(reply_button);
+
+  let email_body = document.createElement('div');
+      email_body.innerHTML = `<div>${email.body}</div>`;
+
+      view.append(info);
+      view.append(reply_button);
+      outer_view.append(email_body);
+
+//CONDITIONAL ARCHIVE BUTTON
+  if(mailbox != 'sent'){
+  var is_archived = email.archived ? 'Unarchive' : 'Archive';
+  let archive_button = document.createElement('BUTTON');
+      archive_button.innerHTML = `${is_archived}`;
+      archive_button.className = `btn btn-sm btn-outline-danger`;
+      archive_button.addEventListener('click', function() {
+        archive(email);
+        //Once an email has been archived or unarchived, load the user’s inbox.
+        load_mailbox('inbox')
+        });
+      view.append(archive_button);
+  }
 
 }
 
-function reply(recipients, subject, body, timestamp){
-  show_compose_view();
-  document.querySelector('#compose-recipients').value = recipients;
-  document.querySelector('#compose-subject').value = subject;
-  document.querySelector('#compose-body').value = body + timestamp;
-
-}
-
-function archive(email_id, is_archived){
+function mark_read(email_id){
   fetch(`emails/${email_id}`, {
     method: 'PUT',
     body: JSON.stringify({
-        archived: is_archived
+        read: true,
     })
+  }).catch((error) => {
+        console.log(error);
   });
+}
+
+
+function archive(email){
+  fetch(`emails/${email.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        archived: !email.archived
+    })   
+  }).catch((error) => {
+        console.log(error);
+  });
+}
+
+function reply(email){
+  show_compose_view();
+  document.querySelector('#compose-recipients').value = email.sender;
+  //(If the subject line already begins with Re: , no need to add it again.)
+  let subject = email.subject;
+  if(!/^Re:/.test(subject)) subject = `Re: ${subject}`;
+  document.querySelector('#compose-subject').value = subject;
+  document.querySelector('#compose-body').value =`\n On ${email.timestamp} ${email.sender} wrote: \n ${email.body}`;
+
 }
