@@ -9,3 +9,10 @@ label {
 .row-hover div:hover{
 	border-color: blue;
 }
+
+.container .row .highlight:hover {
+	border-color: blue;
+}
+.highlight{
+	border-radius: 5px;
+}

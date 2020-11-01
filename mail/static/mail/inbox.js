@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
+
 /**************PAGE CONTROLS******************/
 function show_compose_view(){
   // Show compose view and hide other views
@@ -64,15 +65,15 @@ function load_mailbox(mailbox) {
     .then( emails => {
 
       const display = document.querySelector('#emails-view');
-      
       emails.forEach((email) => {
 
-        var background_color = email.read ? 'lightgray' : 'white';
+
+        var background_color = email.read ? 'WhiteSmoke' : 'white';
 
         let item = document.createElement('div');
         item.innerHTML = `
         <div class="container" style="background-color:${background_color}">
-          <div class="border row row-hover">
+          <div id="row" class="border row">
             <div class="col-sm">
               <label>${email.sender}</label>
             </div>
@@ -173,8 +174,6 @@ function create_selected_html(email, mailbox){
       archive_button.className = `btn btn-sm btn-outline-danger`;
       archive_button.addEventListener('click', function() {
         archive(email);
-        //Once an email has been archived or unarchived, load the user’s inbox.
-        load_mailbox('inbox')
         });
       view.append(archive_button);
   }
@@ -202,12 +201,14 @@ function archive(email){
   }).catch((error) => {
         console.log(error);
   });
+  //Once an email has been archived or unarchived, load the user’s inbox.
+  load_mailbox('inbox')
 }
 
 function reply(email){
   show_compose_view();
   document.querySelector('#compose-recipients').value = email.sender;
-  //(If the subject line already begins with Re: , no need to add it again.)
+  //(If the subject line already begins with Re: , no need to add it again.) https://javascript.info/regexp-anchors
   let subject = email.subject;
   if(!/^Re:/.test(subject)) subject = `Re: ${subject}`;
   document.querySelector('#compose-subject').value = subject;
